@@ -1,0 +1,8 @@
+common.ur
+	fun template (css option) (js option) content sidebar??
+	fun loginStuff??
+
+database
+	implement
+	add organizations, restrict visibility to members of [these organizations]
+
