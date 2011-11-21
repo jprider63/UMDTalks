@@ -4,7 +4,10 @@ compile: umdtalks.urp umdtalks.urs umdtalks.ur
 	urweb umdtalks && mv $(EXE).exe $(EXE)
 
 run: compile
-	./$(EXE) &
+	pkill $(EXE); ./$(EXE) -p 9000 &
+
+stop:
+	pkill $(EXE)
 
 clean:
 	rm $(EXE)
