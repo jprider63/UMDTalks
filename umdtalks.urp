@@ -1,6 +1,9 @@
 #database dbname=umdtalks
 #sql umdtalks.sql
-allow url /css/index.css
-rewrite style Umdtalks/*
+allow url /css/*
+allow url /images/*
+rewrite style Common/*
 
+$/string
+common
 umdtalks
