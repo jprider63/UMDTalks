@@ -1,9 +1,10 @@
-#database dbname=umdtalks
-#sql umdtalks.sql
+database dbname=umdtalks
+sql umdtalks.sql
 allow url /css/*
 allow url /images/*
-rewrite style Common/*
+#rewrite style Common/*
+rewrite style Umdtalks/*
 
 $/string
-common
+#common
 umdtalks
