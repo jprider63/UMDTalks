@@ -10,7 +10,7 @@ style box
 fun template title sidebar =
 	title' <- return (case title of
 		| None => "UMDTalks"
-		| Some t => String.append t " - UMDTalks"
+		| Some t => t ^ " - UMDTalks"
 	);
 	(*sidebar <- return <xml><div>sidebar</div></xml>;*)
 	return <xml>
@@ -22,7 +22,7 @@ fun template title sidebar =
 	<body>
 		<div class={wrapper}>
 			<div class={header}>
-				<a link={template (Some "hi")}><img src="/images/reallybigtalkslogo.gif" /></a>
+				(*<a link={Umdtalks.index}>*)<img src="/images/reallybigtalkslogo.gif" />(*</a>*)
 				<div class={login}>
 					<div class={box}>
 						<div class={header}>

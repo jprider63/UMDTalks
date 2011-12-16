@@ -11,6 +11,8 @@ table lists : {
 }
 	PRIMARY KEY Id
 
+sequence listSeq
+
 table talks : {
 	Id : int,
 	Title : string,
@@ -30,6 +32,8 @@ table talks : {
 }
 	PRIMARY KEY Id
 
+sequence talkSeq
+
 table users : {
 	Id : int,
 	Email : string,
@@ -40,9 +44,12 @@ table users : {
 	Last_login : time,
 	Image_id : int,
 	Created_at : time,
-	Updated_at : time
+	Updated_at : time,
+	Session_crumble : int
 }
 	PRIMARY KEY Id
+
+sequence userSeq
 
 (* Organizations?? or just organizers. *)
 
@@ -54,6 +61,14 @@ style right
 style left
 style login
 style box
+style details
+style title
+style hdiv
+style abstract
+
+cookie userSession : {Username : string, Session_crumble : string}
+
+type user = int * string
 
 fun unimplemented () = return <xml>
 	<body>
@@ -85,7 +100,7 @@ fun template title sidebar body = (
 					<div class={login}>
 						<div class={box}>
 							<div class={header}>
-								Log in
+								<a link={signin False}>Log in</a>
 							</div>
 						</div>
 					</div>
@@ -107,32 +122,34 @@ fun template title sidebar body = (
 )
 
 and index () = (
+	search <- searchBox ();
+	hasLists <- hasRows (SELECT * FROM lists);
+	featLists <- ( case hasLists of
+		| True => queryX ( SELECT * FROM lists) (fn r =>
+				<xml>
+					<div>
+						<a link={list r.Lists.Id}>{[r.Lists.Title]}</a>
+					</div>
+				</xml>
+		)
+		| False => return <xml>
+			There are no featured lists at this time.
+		</xml>
+	);
 	sidebar <- return <xml>
-		(*{searchBox ()}*)
+		{search}
 		<div class={box}>
 			<div class={header}>
 				Featured Lists
 			</div>
 			<div class={content}>
-				There are no featured lists at this time.
+				{featLists}
 			</div>
 		</div>
 	</xml>;
-	featTalks <- ( (*case hasRows (SELECT * FROM talks) of
+	hasTalks <- hasRows (SELECT * FROM talks);
+	featTalks <- ( case hasTalks of
 		| True =>
-			queryX ( SELECT * FROM talks) (fn r =>
-				<xml>
-					<div>
-						{[r.Talks.Title]}
-					</div>
-				</xml>
-			)
-		| False => return
-			<xml>
-				No featured talks found.
-			</xml>
-*)
-
 			queryX ( SELECT * FROM talks) (fn r =>
 				<xml>
 					<div>
@@ -140,9 +157,10 @@ and index () = (
 					</div>
 				</xml>
 			)
-
-
-
+		| False => return
+			<xml>
+				There are no featured talks at this time.
+			</xml>
 		);
 	body <- return <xml>
 		<div class={box}>
@@ -157,11 +175,63 @@ and index () = (
 	template None sidebar body
 )
 
+and list id =
+	search <- searchBox ();
+	row <- oneOrNoRows (SELECT * FROM lists WHERE lists.Id = {[id]});
+	( case row of
+		| None =>
+			body <- return <xml>
+				<div class={box}>
+					<div class={header}>
+						Sorry!
+					</div>
+					<div class={content}>
+						We could not find the list you were looking for.
+					</div>
+				</div>
+			</xml>;
+			template (Some "List not found") search body
+		| Some r =>
+			sidebar <- return <xml>
+				{search}
+				<div class={box}>
+					<div class={header}>
+						Dashboard
+					</div>
+					<div class={content}>
+						Add to list (*<select>
+							<option>You have no lists</option>
+						</select>*) <br />
+						Subscribe to calendar
+					</div>
+				</div>
+				<div class={box}>
+					<div class={header}>
+						Sublists and Talks
+					</div>
+					<div class={content}>
+						Sublists...
+					</div>
+				</div>
+			</xml>;
+			body <- return <xml>
+				<div class={box}>
+					<div class={header}>
+						{[r.Lists.Title]}
+					</div>
+					<div class={content}>
+						Talks in this list
+					</div>
+				</div>
+			</xml>;
+			template (Some r.Lists.Title) sidebar body
+	)
+
 and talk id =
+	search <- searchBox ();
 	row <- oneOrNoRows (SELECT * FROM talks WHERE talks.Id = {[id]});
 	( case row of
 		| None =>
-			sidebar <- return <xml>(*{searchBox ()}*)</xml>;
 			body <- return <xml>
 				<div class={box}>
 					<div class={header}>
@@ -172,18 +242,19 @@ and talk id =
 					</div>
 				</div>
 			</xml>;
-			template (Some "Talk not found") sidebar body
+			template (Some "Talk not found") search body
 		| Some r => 
 			sidebar <- return <xml>
+				{search}
 				<div class={box}>
-					{[searchBox ()]}
 					<div class={header}>
 						Dashboard
 					</div>
 					<div class={content}>
 						Add to list (*<select>
 							<option>You have no lists</option>
-						</select>*)
+						</select>*) <br />
+						Download to calendar
 					</div>
 				</div>
 			</xml>;
@@ -193,15 +264,54 @@ and talk id =
 						{[r.Talks.Title]}
 					</div>
 					<div class={content}>
-						Abstract:
-						<div>
+						<div class={title}>Details</div>
+						<hr class={hdiv} />
+						<ul class={details}>
+							<li><img src="/images/user.jpg" /> {[r.Talks.Speaker_name]}</li>
+							<li><img src="/images/clock.jpg" /> {[r.Talks.Start_time]}</li>
+							<li><img src="/images/house.jpg" /> Todo: the venue </li>
+							<li>Organizers: todo!!!</li>
+							<li>Series: todo!!!</li>
+						</ul>
+						<br />
+						<div class={title}>Abstract</div>
+						<hr class={hdiv} />
+						<div class={abstract}>
 							{[r.Talks.Abstract]}
 						</div>
 					</div>
 				</div>
 			</xml>;
-			template (Some "Talk") sidebar body
+			template (Some r.Talks.Title) sidebar body
 	)
+
+(* TODO: change failed to a record, remembers attempted username *)
+and signin failed = 
+	search <- searchBox ();
+	msg <- return ( case failed of
+		| False => <xml></xml>
+		| True => <xml>Invalid username or password.</xml>
+	);
+	body <- return <xml>
+		<div class={box}>
+			<div class={header}>
+				Login
+			</div>
+			<div class={content}>	
+				{msg}
+				<form>
+					<p>Username:<br/><textbox{#Username}/><br/>
+					Password:<br/><password{#Password}/><br/>
+					<submit value="Login" action={authenticate}/>
+					</p>
+				</form>
+				Register here.
+			</div>
+		</div>
+	</xml>;
+	template (Some "Login") search body
+
+and authenticate row = return <xml><head/><body/></xml>
 
 and searchBox () : transaction xbody =
 	return <xml>

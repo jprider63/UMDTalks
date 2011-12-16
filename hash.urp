@@ -1,0 +1,3 @@
+ffi hash
+include hash.h
+link libhash.a
