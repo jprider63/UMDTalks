@@ -66,7 +66,7 @@ style title
 style hdiv
 style abstract
 
-cookie userSession : {Username : string, Session_crumble : string}
+cookie userSession : {Username : string, Session_crumb : string}
 
 type user = int * string
 
@@ -311,7 +311,21 @@ and signin failed =
 	</xml>;
 	template (Some "Login") search body
 
-and authenticate row = return <xml><head/><body/></xml>
+and authenticate row =
+	r <- oneOrNoRows1 (SELECT users.Id FROM users
+											WHERE users.Email={[row.Username]}
+											AND users.Password = {[Hash.sha512 (row.Username ^ row.Password)]});
+	case r of
+		| None => signin False
+		| Some r' =>
+			let
+				val session = {Username = row.Username, Session_crumb = "55"}(*rand num*)
+			in
+				setCookie userSession {Value = session,
+																Expires = None,
+																Secure = False};
+				return <xml><head/><body></body></xml>
+			end
 
 and searchBox () : transaction xbody =
 	return <xml>

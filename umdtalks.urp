@@ -1,3 +1,5 @@
+library random
+library hash
 database dbname=umdtalks
 sql umdtalks.sql
 allow url /css/*
