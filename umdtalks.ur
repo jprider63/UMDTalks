@@ -40,12 +40,12 @@ table users : {
 	Alias : string,
 	Password : string,
 	Affiliation : string,
-	Administrator : int,
+	(*Administrator : int,*)
 	Last_login : time,
 	Image_id : int,
 	Created_at : time,
 	Updated_at : time,
-	Session_crumble : int
+	Session_crumb: string
 }
 	PRIMARY KEY Id
 
@@ -69,6 +69,10 @@ style abstract
 cookie userSession : {Username : string, Session_crumb : string}
 
 type user = int * string
+
+datatype inputError =
+	| INone
+	| IError of string (* cross with the row (prev values)?? *)
 
 fun unimplemented () = return <xml>
 	<body>
@@ -115,7 +119,7 @@ fun template title sidebar body = (
 				</div>
 			</div>
 			<div class={footer}>
-				About | University of Maryland &copy; 2011
+				(*About | *)University of Maryland &copy; 2011
 			</div>
 		</body>
 	</xml>
@@ -305,26 +309,77 @@ and signin failed =
 					<submit value="Login" action={authenticate}/>
 					</p>
 				</form>
-				Register here.
+				Register <a link={register INone}>here</a>.
 			</div>
 		</div>
 	</xml>;
 	template (Some "Login") search body
+
+and register error = 
+	search <- searchBox ();
+	body <- return <xml>
+		<div class={box}>
+			<div class={header}>
+				Register
+			</div>
+			<div class={content}>	
+				<form>
+					<p>Email:<textbox{#Email}/><br/>
+					Password:<password{#Password}/><br/>
+					Name:<textbox{#Alias}/><br/>
+					Affiliation:<textbox{#Affiliation}/><br/>
+					<submit value="Register" action={createAccount}/>
+					</p>
+				</form>
+			</div>
+		</div>
+	</xml>;
+	template (Some "Register") search body
+
+and createAccount row =
+	r <- oneOrNoRows1 (SELECT users.Id FROM users
+											WHERE users.Email={[row.Email]});
+	case r of
+		| Some _ => register (IError "Sorry, this email is already in use.")
+		| None =>
+			(* TODO: Some input checking*)
+			search <- searchBox ();
+			id <- nextval userSeq;
+			dml (INSERT INTO users (Id,Email,Alias,Password,Affiliation,Last_login,Image_id,Created_at,Updated_at,Session_crumb) VALUES ({[id]},{[row.Email]},{[row.Alias]},{[Hash.sha512 (row.Email ^ row.Password)]},{[row.Affiliation]},CURRENT_TIMESTAMP,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,""));
+			body <- return <xml>
+				<div class={box}>
+					<div class={header}>
+						Featured Talks
+					</div>
+					<div class={content}>
+						Account successfully created. Login here.
+					</div>
+				</div>
+			</xml>;
+			template (Some "Account Created") search body
+
+(*
+
+
+
+return <xml><head/><body>{[Hash.sha512 (row.Email ^ row.Password)]}</body></xml>
+*)
 
 and authenticate row =
 	r <- oneOrNoRows1 (SELECT users.Id FROM users
 											WHERE users.Email={[row.Username]}
 											AND users.Password = {[Hash.sha512 (row.Username ^ row.Password)]});
 	case r of
-		| None => signin False
+		| None => signin True
 		| Some r' =>
+			rnd <- Random.str 63;(*use rand?*)
 			let
-				val session = {Username = row.Username, Session_crumb = "55"}(*rand num*)
+				val session = {Username = row.Username, Session_crumb = rnd}
 			in
 				setCookie userSession {Value = session,
 																Expires = None,
 																Secure = False};
-				return <xml><head/><body></body></xml>
+				return <xml><head/><body>{[rnd]}</body></xml>(*Go to profile page*)
 			end
 
 and searchBox () : transaction xbody =
