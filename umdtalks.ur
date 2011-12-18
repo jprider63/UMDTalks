@@ -82,7 +82,7 @@ fun getUser () =
 			( case user of
 				| None => None
 				| Some u =>
-					(Some user.Id)
+					(Some { Id = user.Id, Email = user.Email})
 			)
 	)
 
