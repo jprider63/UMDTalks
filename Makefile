@@ -2,7 +2,7 @@ EXE=umdtalks
 DB=-db "host=localhost user=umdtalks password=umdrocks"
 
 compile: umdtalks.urp umdtalks.urs umdtalks.ur libraries
-	urweb $(DB) umdtalks && mv $(EXE).exe $(EXE)
+	urweb $(DB) umdtalks
 
 run: compile
 	pkill $(EXE); ./$(EXE) -p 9000 &

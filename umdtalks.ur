@@ -66,13 +66,43 @@ style title
 style hdiv
 style abstract
 
-cookie userSession : {Username : string, Session_crumb : string}
-
-type user = int * string
-
 datatype inputError =
 	| INone
 	| IError of string (* cross with the row (prev values)?? *)
+
+cookie userSession : {Username : string, Session_crumb : string}
+
+(*type user = int * string*)
+fun getUser () =
+	cook <- getCookie userSession;
+	( case cook of
+		| None => None
+		| Some c =>
+			user <- oneOrNoRows1 (SELECT users.Id FROM users WHERE users.Email = {[c.Email]} AND users.Session_crumb = {[c.Session_crumb]});
+			( case user of
+				| None => None
+				| Some u =>
+					(Some user.Id)
+			)
+	)
+
+			(*
+			user <- oneOrNoRows1 (SELECT users.Id, users.Email, users.Alias, users.Affiliation, users.Last_login, users.Image_id, users.Created_at, users.Updated_at FROM users WHERE users.Email = {[c.Email]} AND users.Session_crumb = {[c.Session_crumb]});
+			(Some user.Id)
+			*)
+
+			(*r <- return { Id = user.Id, Email = user.Email};
+			Some r
+			*)
+
+			(*
+			case user of
+				| None => return None
+				| Some u => return Some u
+			return user
+*)
+
+
 
 fun unimplemented () = return <xml>
 	<body>
@@ -289,8 +319,15 @@ and talk id =
 			template (Some r.Talks.Title) sidebar body
 	)
 
-(* TODO: change failed to a record, remembers attempted username *)
+and profile () =
+	search <- searchBox ();
+	sidebar <- return <xml>{search}</xml>;
+	body <- return <xml>Profile..</xml>;
+	template (Some "Profile") sidebar body
+
+(* TODO: change failed to a record, remembers attempted username(inputError) *)
 and signin failed = 
+	(* TODO: if already signed in redirect ( url (index ())) *)
 	search <- searchBox ();
 	msg <- return ( case failed of
 		| False => <xml></xml>
@@ -309,7 +346,7 @@ and signin failed =
 					<submit value="Login" action={authenticate}/>
 					</p>
 				</form>
-				Register <a link={register INone}>here</a>.
+				Register <a link={register ()(*INone*)}>here</a>.
 			</div>
 		</div>
 	</xml>;
@@ -340,7 +377,7 @@ and createAccount row =
 	r <- oneOrNoRows1 (SELECT users.Id FROM users
 											WHERE users.Email={[row.Email]});
 	case r of
-		| Some _ => register (IError "Sorry, this email is already in use.")
+		| Some _ => register ()(*IError "Sorry, this email is already in use."*)
 		| None =>
 			(* TODO: Some input checking*)
 			search <- searchBox ();
@@ -352,18 +389,11 @@ and createAccount row =
 						Featured Talks
 					</div>
 					<div class={content}>
-						Account successfully created. Login here.
+						Account successfully created. Login <a link={signin False}>here</a>.
 					</div>
 				</div>
 			</xml>;
 			template (Some "Account Created") search body
-
-(*
-
-
-
-return <xml><head/><body>{[Hash.sha512 (row.Email ^ row.Password)]}</body></xml>
-*)
 
 and authenticate row =
 	r <- oneOrNoRows1 (SELECT users.Id FROM users
@@ -379,7 +409,7 @@ and authenticate row =
 				setCookie userSession {Value = session,
 																Expires = None,
 																Secure = False};
-				return <xml><head/><body>{[rnd]}</body></xml>(*Go to profile page*)
+				redirect ( url (profile ()))
 			end
 
 and searchBox () : transaction xbody =

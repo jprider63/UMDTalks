@@ -6,6 +6,7 @@ allow url /css/*
 allow url /images/*
 #rewrite style Common/*
 rewrite style Umdtalks/*
+exe umdtalks
 
 $/string
 #common
