@@ -75,7 +75,7 @@ cookie userSession : {Username : string, Session_crumb : string}
 (*type user = int * string*)
 fun getUser () =
 	cook <- getCookie userSession;
-	( case cook of
+	return ( case cook of
 		| None => None
 		| Some c =>
 			user <- oneOrNoRows1 (SELECT users.Id FROM users WHERE users.Email = {[c.Email]} AND users.Session_crumb = {[c.Session_crumb]});
