@@ -7,6 +7,7 @@ allow url /images/*
 #rewrite style Common/*
 rewrite style Umdtalks/*
 exe umdtalks
+safeGet Umdtalks/signout
 
 $/string
 #common

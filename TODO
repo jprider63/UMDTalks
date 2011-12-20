@@ -1,8 +1,23 @@
 common.ur
 	fun template (css option) (js option) content sidebar??
 	fun loginStuff??
+	createBox title body = ???
+
+subscriptions
+
+security
+	filter inputs
+	dml -> trydml
 
 database
-	implement
+	make sure all proper columns are indexed (how do you add if not primary key?)
+	psql conditions
+		unique users.email
 	add organizations, restrict visibility to members of [these organizations]
+	report bug?
+		commented out record fields
 
+User module?
+	handle all user functionality?
+	settings page??
+		obfuscate, hide email?
